@@ -12,7 +12,6 @@ const getMyOrders = async (req: Request, res: Response) => {
     const orders = await Order.find({
       user: req.userId,
       archived: false,
-      status: { $ne: "delivered" },
     })
       .populate("restaurant")
       .populate("user");
