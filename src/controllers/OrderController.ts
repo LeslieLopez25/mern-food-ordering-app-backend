@@ -9,7 +9,11 @@ const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
 
 const getMyOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find({ user: req.userId })
+    const orders = await Order.find({
+      user: req.userId,
+      archived: false,
+      status: { $ne: "delivered" },
+    })
       .populate("restaurant")
       .populate("user");
 
