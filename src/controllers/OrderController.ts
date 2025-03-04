@@ -176,8 +176,25 @@ const createSession = async (
   return sessionData;
 };
 
+const getArchivedOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await Order.find({
+      user: req.userId,
+      archived: true,
+    })
+      .populate("restaurant")
+      .populate("user");
+
+    res.json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
 export default {
   getMyOrders,
   createCheckoutSession,
   stripeWebhookHandler,
+  getArchivedOrders,
 };

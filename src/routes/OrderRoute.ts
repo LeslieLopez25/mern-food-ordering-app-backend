@@ -7,6 +7,8 @@ const router = express.Router();
 
 router.get("/", jwtCheck, jwtParse, OrderController.getMyOrders);
 
+router.get("/archived", jwtCheck, jwtParse, OrderController.getArchivedOrders);
+
 router.post(
   "/checkout/create-checkout-session",
   jwtCheck,
@@ -36,7 +38,7 @@ router.patch("/:id/archive", jwtCheck, jwtParse, async (req, res) => {
   }
 });
 
-router.delete("/api/orders/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const orderId = req.params.id;
 
