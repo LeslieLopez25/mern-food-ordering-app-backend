@@ -192,9 +192,40 @@ const getArchivedOrders = async (req: Request, res: Response) => {
   }
 };
 
+const archiveDeliveredOrders = async (req: Request, res: Response) => {
+  try {
+    const result = await Order.updateMany(
+      { status: "delivered", archived: false },
+      { $set: { archived: true } }
+    );
+
+    res.json({
+      message: `${result.modifiedCount} orders archived successfully`,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to archive orders" });
+  }
+};
+
+const archiveDeliveredOrdersJob = async () => {
+  try {
+    const result = await Order.updateMany(
+      { status: "delivered", archived: false },
+      { $set: { archived: true } }
+    );
+
+    console.log(`${result.modifiedCount} orders archived successfully`);
+  } catch (error) {
+    console.error("Failed to archive orders:", error);
+  }
+};
+
 export default {
   getMyOrders,
   createCheckoutSession,
   stripeWebhookHandler,
   getArchivedOrders,
+  archiveDeliveredOrders,
+  archiveDeliveredOrdersJob,
 };

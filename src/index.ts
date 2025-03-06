@@ -7,6 +7,7 @@ import { v2 as cloudinary } from "cloudinary";
 import myRestaurantRoute from "./routes/MyRestaurantRoute";
 import restaurantRoute from "./routes/RestaurantRoute";
 import orderRoute from "./routes/OrderRoute";
+import OrderController from "./controllers/OrderController";
 
 mongoose
   .connect(process.env.MONGODB_CONNECTION_STRING as string)
@@ -34,6 +35,11 @@ app.use("/api/my/user", myUserRoute);
 app.use("/api/my/restaurant", myRestaurantRoute);
 app.use("/api/restaurant", restaurantRoute);
 app.use("/api/order", orderRoute);
+
+setInterval(async () => {
+  console.log("Archiving delivered orders...");
+  await OrderController.archiveDeliveredOrdersJob();
+}, 15 * 60 * 1000);
 
 const PORT = process.env.PORT || 7000;
 

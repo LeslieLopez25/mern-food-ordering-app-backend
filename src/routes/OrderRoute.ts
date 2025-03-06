@@ -18,6 +18,13 @@ router.post(
 
 router.post("/checkout/webhook", OrderController.stripeWebhookHandler);
 
+router.put(
+  "/archive-orders",
+  jwtCheck,
+  jwtParse,
+  OrderController.archiveDeliveredOrders
+);
+
 router.patch("/:id/archive", jwtCheck, jwtParse, async (req, res) => {
   try {
     const orderId = req.params.id;
