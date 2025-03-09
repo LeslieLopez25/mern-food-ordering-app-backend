@@ -39,7 +39,7 @@ app.use("/api/order", orderRoute);
 setInterval(async () => {
   console.log("Archiving delivered orders...");
   await OrderController.archiveDeliveredOrdersJob();
-}, 15 * 60 * 1000);
+}, 5 * 60 * 1000);
 
 const PORT = process.env.PORT || 7000;
 

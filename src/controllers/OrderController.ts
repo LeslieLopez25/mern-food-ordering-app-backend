@@ -178,17 +178,21 @@ const createSession = async (
 
 const getArchivedOrders = async (req: Request, res: Response) => {
   try {
+    const restaurant = await Restaurant.findOne({ user: req.userId });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
     const orders = await Order.find({
-      user: req.userId,
       archived: true,
-    })
-      .populate("restaurant")
-      .populate("user");
+      restaurant: restaurant._id,
+    }).sort({ updatedAt: -1 });
 
     res.json(orders);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Error fetching archived orders:", error);
+    res.status(500).json({ error: "Failed to get archived orders" });
   }
 };
 

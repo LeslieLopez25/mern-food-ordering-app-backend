@@ -81,7 +81,11 @@ const getMyRestaurantOrders = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "restaurant not found" });
     }
 
-    const orders = await Order.find({ restaurant: restaurant._id })
+    const orders = await Order.find({
+      restaurant: restaurant._id,
+      $or: [{ archived: true }, { status: "delivered" }],
+    })
+      .sort({ updatedAt: -1 })
       .populate("restaurant")
       .populate("user");
 
@@ -103,14 +107,24 @@ const updateOrderStatus = async (req: Request, res: Response) => {
     }
 
     const restaurant = await Restaurant.findById(order.restaurant);
-
     if (restaurant?.user?._id.toString() !== req.userId) {
       return res.status(401).send();
     }
 
     order.status = status;
-    await order.save();
 
+    if (status === "delivered") {
+      setTimeout(async () => {
+        const updatedOrder = await Order.findById(orderId);
+        if (updatedOrder?.status === "delivered") {
+          updatedOrder.archived = true;
+          await updatedOrder.save();
+          console.log(`Order ${orderId} archived`);
+        }
+      }, 5 * 60 * 1000);
+    }
+
+    await order.save();
     res.status(200).json(order);
   } catch (error) {
     console.log(error);
