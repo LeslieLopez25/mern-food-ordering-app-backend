@@ -36,11 +36,6 @@ app.use("/api/my/restaurant", myRestaurantRoute);
 app.use("/api/restaurant", restaurantRoute);
 app.use("/api/order", orderRoute);
 
-setInterval(async () => {
-  console.log("Archiving delivered orders...");
-  await OrderController.archiveDeliveredOrdersJob();
-}, 5 * 60 * 1000);
-
 const PORT = process.env.PORT || 7000;
 
 app.listen(PORT, () => {

@@ -9,10 +9,7 @@ const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
 
 const getMyOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find({
-      user: req.userId,
-      archived: false,
-    })
+    const orders = await Order.find({ user: req.userId })
       .populate("restaurant")
       .populate("user");
 
@@ -87,7 +84,7 @@ const createCheckoutSession = async (req: Request, res: Response) => {
       status: "placed",
       deliveryDetails: checkoutSessionRequest.deliveryDetails,
       cartItems: checkoutSessionRequest.cartItems,
-      createAt: new Date(),
+      createdAt: new Date(),
     });
 
     const lineItems = createLineItems(
@@ -129,7 +126,7 @@ const createLineItems = (
 
     const line_item: Stripe.Checkout.SessionCreateParams.LineItem = {
       price_data: {
-        currency: "mxn",
+        currency: "gbp",
         unit_amount: menuItem.price,
         product_data: {
           name: menuItem.name,
@@ -159,7 +156,7 @@ const createSession = async (
           type: "fixed_amount",
           fixed_amount: {
             amount: deliveryPrice,
-            currency: "mxn",
+            currency: "gbp",
           },
         },
       },
@@ -176,60 +173,8 @@ const createSession = async (
   return sessionData;
 };
 
-const getArchivedOrders = async (req: Request, res: Response) => {
-  try {
-    const restaurant = await Restaurant.findOne({ user: req.userId });
-
-    if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
-    }
-
-    const orders = await Order.find({
-      archived: true,
-      restaurant: restaurant._id,
-    }).sort({ updatedAt: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    console.error("Error fetching archived orders:", error);
-    res.status(500).json({ error: "Failed to get archived orders" });
-  }
-};
-
-const archiveDeliveredOrders = async (req: Request, res: Response) => {
-  try {
-    const result = await Order.updateMany(
-      { status: "delivered", archived: false },
-      { $set: { archived: true } }
-    );
-
-    res.json({
-      message: `${result.modifiedCount} orders archived successfully`,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to archive orders" });
-  }
-};
-
-const archiveDeliveredOrdersJob = async () => {
-  try {
-    const result = await Order.updateMany(
-      { status: "delivered", archived: false },
-      { $set: { archived: true } }
-    );
-
-    console.log(`${result.modifiedCount} orders archived successfully`);
-  } catch (error) {
-    console.error("Failed to archive orders:", error);
-  }
-};
-
 export default {
   getMyOrders,
   createCheckoutSession,
   stripeWebhookHandler,
-  getArchivedOrders,
-  archiveDeliveredOrders,
-  archiveDeliveredOrdersJob,
 };
