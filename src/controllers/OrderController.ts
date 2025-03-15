@@ -10,10 +10,19 @@ const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
 const getMyOrders = async (req: Request, res: Response) => {
   try {
     const orders = await Order.find({ user: req.userId })
-      .populate("restaurant")
+      .populate({
+        path: "restaurant",
+        populate: { path: "user", model: "User" },
+      })
       .populate("user");
 
-    res.json(orders);
+    const filteredOrders = orders.filter((order) => {
+      if (order.status !== "delivered") return true;
+      const deliveredAt = new Date(order.updatedAt).getTime();
+      return Date.now() - deliveredAt < 7000;
+    });
+
+    res.json(filteredOrders);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "something went wrong" });
@@ -173,8 +182,51 @@ const createSession = async (
   return sessionData;
 };
 
+const updateOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const { orderId, status } = req.body;
+
+    const order = await Order.findById(orderId).populate({
+      path: "restaurant",
+      populate: { path: "user", model: "User" },
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const restaurantPopulated = order.restaurant as any;
+    if (
+      !restaurantPopulated ||
+      !restaurantPopulated.user ||
+      restaurantPopulated.user.toString() !== req.userId
+    ) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    order.status = status;
+    await order.save();
+
+    res.json({ message: "Order status updated", order });
+
+    if (status === "delivered") {
+      setTimeout(async () => {
+        const orderToDelete = await Order.findById(orderId);
+        if (orderToDelete) {
+          await Order.findByIdAndDelete(orderId);
+          console.log(`Order ${orderId} permanently deleted.`);
+        }
+      }, 7000);
+    }
+  } catch (error: any) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ message: error.message || "Something went wrong" });
+  }
+};
+
 export default {
   getMyOrders,
   createCheckoutSession,
   stripeWebhookHandler,
+  updateOrderStatus,
 };
