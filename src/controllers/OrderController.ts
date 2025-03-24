@@ -16,10 +16,11 @@ const getMyOrders = async (req: Request, res: Response) => {
       })
       .populate("user");
 
+    const now = Date.now();
     const filteredOrders = orders.filter((order) => {
       if (order.status !== "delivered") return true;
       const deliveredAt = new Date(order.updatedAt).getTime();
-      return Date.now() - deliveredAt < 7000;
+      return now - deliveredAt < 7000;
     });
 
     res.json(filteredOrders);

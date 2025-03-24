@@ -20,7 +20,12 @@ cloudinary.config({
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 app.use("/api/order/checkout/webhook", express.raw({ type: "*/*" }));
 
@@ -34,6 +39,7 @@ app.use("/api/my/user", myUserRoute);
 app.use("/api/my/restaurant", myRestaurantRoute);
 app.use("/api/restaurant", restaurantRoute);
 app.use("/api/order", orderRoute);
+app.use("/api/my/restaurant/order", orderRoute);
 
 const PORT = process.env.PORT || 7000;
 
