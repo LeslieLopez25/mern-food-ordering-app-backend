@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import User from "../models/user";
 
+// Get the currently logged-in user's profile
+// Looks up the user in the database using the ID from the auth middleware
 const getCurrentUser = async (req: Request, res: Response) => {
   try {
     const currentUser = await User.findOne({ _id: req.userId });
@@ -15,6 +17,7 @@ const getCurrentUser = async (req: Request, res: Response) => {
   }
 };
 
+// Create a new user in the database
 const createCurrentUser = async (req: Request, res: Response) => {
   try {
     const { auth0Id } = req.body;
@@ -34,6 +37,8 @@ const createCurrentUser = async (req: Request, res: Response) => {
   }
 };
 
+// Update the current user's profile
+// Looks up the user by ID, updates the fields, and saves the result
 const updateCurrentUser = async (req: Request, res: Response) => {
   try {
     const { name, addressLine1, country, city } = req.body;
