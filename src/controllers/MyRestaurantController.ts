@@ -4,6 +4,7 @@ import cloudinary from "cloudinary";
 import mongoose from "mongoose";
 import Order from "../models/order";
 
+// Get the restaurant that belongs to the currently logged-in user
 const getMyRestaurant = async (req: Request, res: Response) => {
   try {
     const restaurant = await Restaurant.findOne({ user: req.userId });
@@ -17,6 +18,9 @@ const getMyRestaurant = async (req: Request, res: Response) => {
   }
 };
 
+// Create a restaurant for logged-in user
+// Uploads the restaurant image and stores other info like name, city, etc
+// Ensures the user doesn't already have a restaurant
 const createMyRestaurant = async (req: Request, res: Response) => {
   try {
     const existingRestaurant = await Restaurant.findOne({ user: req.userId });
@@ -42,6 +46,7 @@ const createMyRestaurant = async (req: Request, res: Response) => {
   }
 };
 
+// Update an existing restaurant's details and optionally updates the restaurant's image if a new one is uploaded
 const updateMyRestaurant = async (req: Request, res: Response) => {
   try {
     const restaurant = await Restaurant.findOne({
@@ -74,6 +79,8 @@ const updateMyRestaurant = async (req: Request, res: Response) => {
   }
 };
 
+// Get all orders for the restaurant owned by the current user
+// Includes user and restaurant data in the result
 const getMyRestaurantOrders = async (req: Request, res: Response) => {
   try {
     const restaurant = await Restaurant.findOne({ user: req.userId });
@@ -92,6 +99,8 @@ const getMyRestaurantOrders = async (req: Request, res: Response) => {
   }
 };
 
+// Update the status of a specific order
+// Only the owner of the restaurant can update their own orders
 const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
@@ -104,6 +113,7 @@ const updateOrderStatus = async (req: Request, res: Response) => {
 
     const restaurant = await Restaurant.findById(order.restaurant);
 
+    // Check if current user is the owner of the restaurant
     if (restaurant?.user?._id.toString() !== req.userId) {
       return res.status(401).send();
     }
@@ -118,6 +128,9 @@ const updateOrderStatus = async (req: Request, res: Response) => {
   }
 };
 
+// Helper function to upload an image to Cloudinary
+// Converts the uploaded file into base64 and sends it to Cloudinary
+// Returns the URL of the uploaded image
 const uploadImage = async (file: Express.Multer.File) => {
   const image = file;
   const base64Image = Buffer.from(image.buffer).toString("base64");
