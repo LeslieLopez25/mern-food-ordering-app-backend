@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import Restaurant from "../models/restaurant";
 
+// GET /api/restaurant/:restaurant
+// Fetches a single restaurant by ID
 const getRestaurant = async (req: Request, res: Response) => {
   try {
     const restaurantId = req.params.restaurantId;
@@ -17,6 +19,8 @@ const getRestaurant = async (req: Request, res: Response) => {
   }
 };
 
+// GET /api/search/:city
+// Search for restaurants in a city with optional filters
 const searchRestaurant = async (req: Request, res: Response) => {
   try {
     const city = req.params.city;
