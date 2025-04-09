@@ -7,6 +7,8 @@ const STRIPE = new Stripe(process.env.STRIPE_API_KEY as string);
 const FRONTEND_URL = process.env.FRONTEND_URL as string;
 const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET as string;
 
+// Get all orders for the currently logged-in user
+// If an order is marked as "delivered" and more than 7 seconds have passed, it gets filtered out
 const getMyOrders = async (req: Request, res: Response) => {
   try {
     const orders = await Order.find({ user: req.userId })
@@ -45,6 +47,8 @@ type CheckoutSessionRequest = {
   restaurantId: string;
 };
 
+// Handles Stripe webhooks (specifically when checkout session completes)
+// Marks the order as "paid" and updates the total amount
 const stripeWebhookHandler = async (req: Request, res: Response) => {
   let event;
 
@@ -76,6 +80,8 @@ const stripeWebhookHandler = async (req: Request, res: Response) => {
   res.status(200).send();
 };
 
+// Creates a new order in the DB and generates a Stripe Checkout session
+// Returns the Stripe checkout URL so the frontend can redirect the user
 const createCheckoutSession = async (req: Request, res: Response) => {
   try {
     const checkoutSessionRequest: CheckoutSessionRequest = req.body;
@@ -97,6 +103,7 @@ const createCheckoutSession = async (req: Request, res: Response) => {
       createdAt: new Date(),
     });
 
+    // Convert cart items into Stripe line items
     const lineItems = createLineItems(
       checkoutSessionRequest,
       restaurant.menuItems
@@ -121,6 +128,7 @@ const createCheckoutSession = async (req: Request, res: Response) => {
   }
 };
 
+// Converts the cart items into Stripe's expected line item format
 const createLineItems = (
   checkoutSessionRequest: CheckoutSessionRequest,
   menuItems: MenuItemType[]
@@ -151,6 +159,7 @@ const createLineItems = (
   return lineItems;
 };
 
+// Helper function that creates a Stripe Checkout session using line items, delivery info, and redirects URLs
 const createSession = async (
   lineItems: Stripe.Checkout.SessionCreateParams.LineItem[],
   orderId: string,
@@ -183,6 +192,8 @@ const createSession = async (
   return sessionData;
 };
 
+// Allows the restaurant to update the status of an order
+// If status is set to "delivered", the order is deleted from the DB after 7 seconds
 const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const { orderId, status } = req.body;
@@ -196,6 +207,7 @@ const updateOrderStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    // Make sure the user updating the order owns the restaurant
     const restaurantPopulated = order.restaurant as any;
     if (
       !restaurantPopulated ||
@@ -210,6 +222,7 @@ const updateOrderStatus = async (req: Request, res: Response) => {
 
     res.json({ message: "Order status updated", order });
 
+    // Auto-delete the order after 7 seconds if delivered
     if (status === "delivered") {
       setTimeout(async () => {
         const orderToDelete = await Order.findById(orderId);
