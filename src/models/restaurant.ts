@@ -1,5 +1,6 @@
 import mongoose, { InferSchemaType } from "mongoose";
 
+// Sub-schema for a menu item within a restaurant
 const menuItemSchema = new mongoose.Schema({
   _id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -12,6 +13,7 @@ const menuItemSchema = new mongoose.Schema({
 
 export type MenuItemType = InferSchemaType<typeof menuItemSchema>;
 
+// Schema for a Restaurant document
 const restaurantSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   restaurantName: { type: String, required: true },
