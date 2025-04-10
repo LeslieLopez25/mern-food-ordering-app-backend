@@ -14,6 +14,7 @@ const upload = multer({
   },
 });
 
+// Get all orders for the logged-in restaurant owner
 router.get(
   "/order",
   jwtCheck,
@@ -21,6 +22,7 @@ router.get(
   MyRestaurantController.getMyRestaurantOrders
 );
 
+// Update status of a specific order
 router.patch(
   "/order/:orderId/status",
   jwtCheck,
@@ -30,6 +32,7 @@ router.patch(
 
 router.get("/", jwtCheck, jwtParse, MyRestaurantController.getMyRestaurant);
 
+// Create a restaurant
 router.post(
   "/",
   upload.single("imageFile"),
@@ -39,6 +42,7 @@ router.post(
   MyRestaurantController.createMyRestaurant
 );
 
+// Update existing restaurant
 router.put(
   "/",
   upload.single("imageFile"),
