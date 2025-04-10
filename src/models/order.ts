@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Mongoose schema for an Order document
 const orderSchema = new mongoose.Schema(
   {
     restaurant: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant" },
@@ -24,7 +25,7 @@ const orderSchema = new mongoose.Schema(
     },
     archived: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true } // Adds createdAt and updatedAt fields
 );
 
 const Order = mongoose.model("Order", orderSchema);
