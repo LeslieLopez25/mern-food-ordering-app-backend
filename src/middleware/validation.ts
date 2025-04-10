@@ -13,6 +13,7 @@ const handleValidationErrors = async (
   next();
 };
 
+// Validation rules for updating user info
 export const validateMyUserRequest = [
   body("name").isString().notEmpty().withMessage("Name must be a string"),
   body("addressLine1")
@@ -24,6 +25,7 @@ export const validateMyUserRequest = [
   handleValidationErrors,
 ];
 
+// Validation rules for creating/updating a restaurant
 export const validateMyRestaurantRequest = [
   body("restaurantName").notEmpty().withMessage("Restaurant name is required"),
   body("city").notEmpty().withMessage("City is required"),
