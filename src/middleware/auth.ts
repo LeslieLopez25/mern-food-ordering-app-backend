@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user";
 dotenv.config();
 
+// Extend Express' Request object to include custom auth fields
 declare global {
   namespace Express {
     interface Request {
@@ -14,12 +15,14 @@ declare global {
   }
 }
 
+// Middleware to verify JWT using Auth0 settings
 export const jwtCheck = auth({
   audience: process.env.AUTH0_AUDIENCE,
   issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
   tokenSigningAlg: "RS256",
 });
 
+// Middleware to decode the JWT and attach user info to req
 export const jwtParse = async (
   req: Request,
   res: Response,
