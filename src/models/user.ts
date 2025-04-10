@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Schema for a user document
 const userSchema = new mongoose.Schema({
   auth0Id: {
     type: String,
@@ -7,7 +8,7 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    require: true,
+    required: true,
   },
   name: {
     type: String,
