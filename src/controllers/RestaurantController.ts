@@ -1,47 +1,40 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AuthRequest } from "../types/types";
 import Restaurant from "../models/restaurant";
 
-// GET /api/restaurant/:restaurant
-// Fetches a single restaurant by ID
-const getRestaurant = async (req: Request, res: Response) => {
+// GET /api/restaurant/:restaurantId
+const getRestaurant = async (req: AuthRequest, res: Response) => {
   try {
     const restaurantId = req.params.restaurantId;
-
     const restaurant = await Restaurant.findById(restaurantId);
+
     if (!restaurant) {
-      return res.status(404).json({ message: "restaurant not found" });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
     res.json(restaurant);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "something went wrong" });
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
 // GET /api/search/:city
-// Search for restaurants in a city with optional filters
-const searchRestaurant = async (req: Request, res: Response) => {
+const searchRestaurant = async (req: AuthRequest, res: Response) => {
   try {
     const city = req.params.city;
-
     const searchQuery = (req.query.searchQuery as string) || "";
     const selectedCuisines = (req.query.selectedCuisines as string) || "";
     const sortOption = (req.query.sortOption as string) || "lastUpdated";
     const page = parseInt(req.query.page as string) || 1;
 
-    let query: any = {};
+    let query: any = { city: new RegExp(city, "i") };
 
-    query["city"] = new RegExp(city, "i");
     const cityCheck = await Restaurant.countDocuments(query);
     if (cityCheck === 0) {
       return res.status(404).json({
         data: [],
-        pagination: {
-          total: 0,
-          page: 1,
-          pages: 1,
-        },
+        pagination: { total: 0, page: 1, pages: 1 },
       });
     }
 
@@ -49,7 +42,6 @@ const searchRestaurant = async (req: Request, res: Response) => {
       const cuisinesArray = selectedCuisines
         .split(",")
         .map((cuisine) => new RegExp(cuisine, "i"));
-
       query["cuisines"] = { $all: cuisinesArray };
     }
 
@@ -72,18 +64,12 @@ const searchRestaurant = async (req: Request, res: Response) => {
 
     const total = await Restaurant.countDocuments(query);
 
-    const response = {
+    res.json({
       data: restaurants,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / pageSize),
-      },
-    };
-
-    res.json(response);
+      pagination: { total, page, pages: Math.ceil(total / pageSize) },
+    });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }
 };

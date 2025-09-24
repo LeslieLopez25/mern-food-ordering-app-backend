@@ -3,58 +3,58 @@ import Restaurant from "../models/restaurant";
 import cloudinary from "cloudinary";
 import mongoose from "mongoose";
 import Order from "../models/order";
+import { AuthRequest } from "../types/types";
 
-// Get the restaurant that belongs to the currently logged-in user
-const getMyRestaurant = async (req: Request, res: Response) => {
+// ------------------- Get the restaurant for logged-in user -------------------
+const getMyRestaurant = async (req: AuthRequest, res: Response) => {
   try {
     const restaurant = await Restaurant.findOne({ user: req.userId });
     if (!restaurant) {
-      return res.status(404).json({ message: "restaurant not found" });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
     res.json(restaurant);
   } catch (error) {
-    console.log("error", error);
+    console.error("Error fetching restaurant:", error);
     res.status(500).json({ message: "Error fetching restaurant" });
   }
 };
 
-// Create a restaurant for logged-in user
-// Uploads the restaurant image and stores other info like name, city, etc
-// Ensures the user doesn't already have a restaurant
-const createMyRestaurant = async (req: Request, res: Response) => {
+// ------------------- Create a restaurant -------------------
+const createMyRestaurant = async (req: AuthRequest, res: Response) => {
   try {
     const existingRestaurant = await Restaurant.findOne({ user: req.userId });
-
     if (existingRestaurant) {
       return res
         .status(409)
         .json({ message: "User restaurant already exists" });
     }
 
-    const imageUrl = await uploadImage(req.file as Express.Multer.File);
+    let imageUrl = "";
+    if (req.file) {
+      imageUrl = await uploadImage(req.file);
+    }
 
-    const restaurant = new Restaurant(req.body);
-    restaurant.imageUrl = imageUrl;
-    restaurant.user = new mongoose.Types.ObjectId(req.userId);
-    restaurant.lastUpdated = new Date();
+    const restaurant = new Restaurant({
+      ...req.body,
+      imageUrl,
+      user: new mongoose.Types.ObjectId(req.userId),
+      lastUpdated: new Date(),
+    });
+
     await restaurant.save();
-
     res.status(201).send(restaurant);
   } catch (error) {
-    console.log(error);
+    console.error("Error creating restaurant:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 };
 
-// Update an existing restaurant's details and optionally updates the restaurant's image if a new one is uploaded
-const updateMyRestaurant = async (req: Request, res: Response) => {
+// ------------------- Update a restaurant -------------------
+const updateMyRestaurant = async (req: AuthRequest, res: Response) => {
   try {
-    const restaurant = await Restaurant.findOne({
-      user: req.userId,
-    });
-
+    const restaurant = await Restaurant.findOne({ user: req.userId });
     if (!restaurant) {
-      return res.status(404).json({ message: "restaurant not found" });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
     restaurant.restaurantName = req.body.restaurantName;
@@ -67,25 +67,24 @@ const updateMyRestaurant = async (req: Request, res: Response) => {
     restaurant.lastUpdated = new Date();
 
     if (req.file) {
-      const imageUrl = await uploadImage(req.file as Express.Multer.File);
+      const imageUrl = await uploadImage(req.file);
       restaurant.imageUrl = imageUrl;
     }
 
     await restaurant.save();
     res.status(200).send(restaurant);
   } catch (error) {
-    console.log("error", error);
+    console.error("Error updating restaurant:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 };
 
-// Get all orders for the restaurant owned by the current user
-// Includes user and restaurant data in the result
-const getMyRestaurantOrders = async (req: Request, res: Response) => {
+// ------------------- Get restaurant orders -------------------
+const getMyRestaurantOrders = async (req: AuthRequest, res: Response) => {
   try {
     const restaurant = await Restaurant.findOne({ user: req.userId });
     if (!restaurant) {
-      return res.status(404).json({ message: "restaurant not found" });
+      return res.status(404).json({ message: "Restaurant not found" });
     }
 
     const orders = await Order.find({ restaurant: restaurant._id })
@@ -94,28 +93,26 @@ const getMyRestaurantOrders = async (req: Request, res: Response) => {
 
     res.json(orders);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "something went wrong" });
+    console.error("Error fetching restaurant orders:", error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
-// Update the status of a specific order
-// Only the owner of the restaurant can update their own orders
-const updateOrderStatus = async (req: Request, res: Response) => {
+// ------------------- Update order status -------------------
+const updateOrderStatus = async (req: AuthRequest, res: Response) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
 
     const order = await Order.findById(orderId);
     if (!order) {
-      return res.status(404).json({ message: "order not found" });
+      return res.status(404).json({ message: "Order not found" });
     }
 
     const restaurant = await Restaurant.findById(order.restaurant);
 
-    // Check if current user is the owner of the restaurant
-    if (restaurant?.user?._id.toString() !== req.userId) {
-      return res.status(401).send();
+    if (restaurant?.user?.toString() !== req.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     order.status = status;
@@ -123,27 +120,27 @@ const updateOrderStatus = async (req: Request, res: Response) => {
 
     res.status(200).json(order);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "unable to update order status" });
+    console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Unable to update order status" });
   }
 };
 
-// Helper function to upload an image to Cloudinary
-// Converts the uploaded file into base64 and sends it to Cloudinary
-// Returns the URL of the uploaded image
-const uploadImage = async (file: Express.Multer.File) => {
-  const image = file;
-  const base64Image = Buffer.from(image.buffer).toString("base64");
-  const dataURI = `data:${image.mimetype};base64,${base64Image}`;
+// ------------------- Cloudinary helper -------------------
+const uploadImage = async (file: Express.Multer.File): Promise<string> => {
+  const base64Image = file.buffer.toString("base64");
+  const dataURI = `data:${file.mimetype};base64,${base64Image}`;
 
-  const uploadResponse = await cloudinary.v2.uploader.upload(dataURI);
-  return uploadResponse.url;
+  const uploadResponse = await cloudinary.v2.uploader.upload(dataURI, {
+    folder: "restaurants",
+  });
+
+  return uploadResponse.secure_url;
 };
 
 export default {
-  updateOrderStatus,
-  getMyRestaurantOrders,
   getMyRestaurant,
   createMyRestaurant,
   updateMyRestaurant,
+  getMyRestaurantOrders,
+  updateOrderStatus,
 };
