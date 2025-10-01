@@ -7,6 +7,7 @@ import { AuthRequest } from "../types/types";
 
 dotenv.config();
 
+// Middleware to validate JWT signature & claims
 export const jwtCheck = auth({
   audience: process.env.AUTH0_AUDIENCE,
   issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
@@ -28,10 +29,6 @@ export const jwtParse = async (
     }
 
     const token = authHeader.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Token missing" });
-    }
-
     const decoded = jwt.decode(token) as {
       sub?: string;
       email?: string;
@@ -44,14 +41,13 @@ export const jwtParse = async (
       return res.status(401).json({ error: "Invalid token" });
     }
 
-    // Fallback values if token doesn’t include them
     const auth0Id = decoded.sub;
-    const email = decoded.email || "";
+    const email = decoded.email;
     const name = decoded.name || decoded.nickname || "Unnamed User";
 
     // Attach to request
     req.auth0Id = auth0Id;
-    req.email = email;
+    req.email = email || "";
     req.name = name;
 
     // Ensure user exists in DB
@@ -59,8 +55,8 @@ export const jwtParse = async (
     if (!user) {
       user = new User({
         auth0Id,
-        email: email || "no-email@example.com", // prevent validation errors
-        name: name || "Unnamed User",
+        email: email ?? "missing-email@example.com",
+        name,
       });
       await user.save();
     }
