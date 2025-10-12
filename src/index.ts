@@ -8,9 +8,13 @@ import myRestaurantRoute from "./routes/MyRestaurantRoute";
 import restaurantRoute from "./routes/RestaurantRoute";
 import orderRoute from "./routes/OrderRoute";
 
+// Detect environment
+const isTest = process.env.NODE_ENV === "test";
+
 mongoose
   .connect(process.env.MONGODB_CONNECTION_STRING as string)
-  .then(() => console.log("Connection to database!"));
+  .then(() => console.log("Connected to database!"))
+  .catch((err) => console.error("DB connection error:", err));
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -20,7 +24,10 @@ cloudinary.config({
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:5174", process.env.FRONTEND_URL];
+// Relaxed CORS for tests
+const allowedOrigins = isTest
+  ? ["http://localhost:5174", "http://127.0.0.1:5174"]
+  : ["http://localhost:5174", process.env.FRONTEND_URL];
 
 app.use(
   cors({
@@ -35,14 +42,31 @@ app.use(
   })
 );
 
+// Stripe webhook must use raw body
 app.use("/api/order/checkout/webhook", express.raw({ type: "*/*" }));
 
 app.use(express.json());
 
-app.get("/health", async (req: Request, res: Response) => {
+// Mock Stripe logic for tests only
+if (isTest) {
+  console.log("⚙️ Running in TEST MODE — using mock Stripe checkout");
+
+  app.post("/api/order/checkout", (req: Request, res: Response) => {
+    // Simulate a successful payment intent
+    res.json({
+      url: "http://localhost:5174/order-status",
+      mock: true,
+      message: "Simulated Stripe checkout URL",
+    });
+  });
+}
+
+// Health check
+app.get("/health", (req: Request, res: Response) => {
   res.send({ message: "health OK!" });
 });
 
+// Routes
 app.use("/api/my/user", myUserRoute);
 app.use("/api/my/restaurant", myRestaurantRoute);
 app.use("/api/restaurant", restaurantRoute);
@@ -50,7 +74,6 @@ app.use("/api/order", orderRoute);
 app.use("/api/my/restaurant/order", orderRoute);
 
 const PORT = process.env.PORT || 7000;
-
 app.listen(PORT, () => {
-  console.log(`server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}${isTest ? " (TEST MODE)" : ""}`);
 });
